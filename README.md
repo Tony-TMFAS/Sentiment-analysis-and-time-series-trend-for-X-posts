@@ -55,13 +55,13 @@ Sentiment analysis and time series trend for X posts.ipynb → Jupyter notebook 
 
 tweets_labeled.csv → Example dataset (scraped & labeled tweets)
 
-streamlit_app.py → Main Streamlit dashboard
-
 requirements.txt → Dependencies
 
 scraper.py for scraping tweets
 
 tweets_labeled.csv
+
+Project Link: https://sentiment-analysis-and-time-series-trend-for-x-posts.streamlit.app/
 
 README.md → Project documentation
 
