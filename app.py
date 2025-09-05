@@ -19,8 +19,6 @@ st.set_page_config(
 # --------------------------
 # LOAD DATA
 # --------------------------
-
-
 @st.cache_data
 def load_data():
     df_twt = pd.read_csv("tweets_labeled.csv", parse_dates=["created_at"])
@@ -32,7 +30,6 @@ def load_data():
         df_twt["sentiment"], categories=sentiment_order, ordered=True
     )
     return df_twt
-
 
 df_twt = load_data()
 
@@ -69,19 +66,16 @@ and classified using **CardiffNLP RoBERTa** for sentiment.
 # ---- KPIs (4 columns in fixed order) ----
 col1, col2, col3, col4 = st.columns(4)
 col1.metric("Total Tweets", len(df_filtered))
-col2.metric("Positive %", round(
-    (df_filtered["sentiment"].eq("positive").mean())*100, 1))
-col3.metric("Neutral %", round(
-    (df_filtered["sentiment"].eq("neutral").mean())*100, 1))
-col4.metric("Negative %", round(
-    (df_filtered["sentiment"].eq("negative").mean())*100, 1))
+col2.metric("Positive %", round((df_filtered["sentiment"].eq("positive").mean())*100, 1))
+col3.metric("Neutral %", round((df_filtered["sentiment"].eq("neutral").mean())*100, 1))
+col4.metric("Negative %", round((df_filtered["sentiment"].eq("negative").mean())*100, 1))
 
 # ---- Sentiment Distribution ----
 st.subheader("📌 Sentiment Distribution")
 fig = px.histogram(
-    df_filtered,
-    x="sentiment",
-    color="sentiment",
+    df_filtered, 
+    x="sentiment", 
+    color="sentiment", 
     title="Distribution of Sentiments",
     category_orders={"sentiment": ["positive", "neutral", "negative"]},
     color_discrete_map={
@@ -94,11 +88,10 @@ st.plotly_chart(fig, use_container_width=True)
 
 # ---- Time Series ----
 st.subheader("📈 Sentiment Trend Over Time")
-sentiment_trend = df_filtered.groupby(
-    ["date", "sentiment"]).size().reset_index(name="count")
+sentiment_trend = df_filtered.groupby(["date", "sentiment"]).size().reset_index(name="count")
 fig = px.line(
-    sentiment_trend,
-    x="date", y="count", color="sentiment",
+    sentiment_trend, 
+    x="date", y="count", color="sentiment", 
     title="Sentiment Over Time",
     category_orders={"sentiment": ["positive", "neutral", "negative"]},
     color_discrete_map={
@@ -112,16 +105,14 @@ st.plotly_chart(fig, use_container_width=True)
 # ---- Word Cloud ----
 st.subheader("☁️ WordCloud per Sentiment")
 stopwords = set(STOPWORDS)
-sent_choice = st.selectbox("Select Sentiment for WordCloud", [
-                           "positive", "neutral", "negative"])
+sent_choice = st.selectbox("Select Sentiment for WordCloud", ["positive", "neutral", "negative"])
 
-text = " ".join(df_filtered[df_filtered["sentiment"]
-                == sent_choice]["clean_text"])
+text = " ".join(df_filtered[df_filtered["sentiment"] == sent_choice]["clean_text"])
 if text.strip():
     wc = WordCloud(width=800, height=400, background_color="white",
                    stopwords=stopwords, collocations=False).generate(text)
 
-    fig, ax = plt.subplots(figsize=(10, 5))
+    fig, ax = plt.subplots(figsize=(10,5))
     ax.imshow(wc, interpolation="bilinear")
     ax.axis("off")
     st.pyplot(fig)
@@ -136,15 +127,22 @@ st.dataframe(df_filtered[["created_at", "text", "sentiment"]].head(20))
 # EXTRA: Custom Text Inference
 # --------------------------
 st.subheader("🤖 Try It Yourself: Sentiment Prediction")
+
 user_input = st.text_area("Enter a tweet or sentence to analyze:")
 
-if user_input:
-    model_name = "cardiffnlp/twitter-roberta-base-sentiment-latest"
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModelForSequenceClassification.from_pretrained(model_name)
-    sentiment_pipeline = pipeline(
-        "sentiment-analysis", model=model, tokenizer=tokenizer)
+if st.button("🔮 Predict Sentiment"):
+    if user_input.strip():
+        # Cache model to avoid reloading every time
+        @st.cache_resource
+        def load_model():
+            model_name = "cardiffnlp/twitter-roberta-base-sentiment-latest"
+            tokenizer = AutoTokenizer.from_pretrained(model_name)
+            model = AutoModelForSequenceClassification.from_pretrained(model_name)
+            return pipeline("sentiment-analysis", model=model, tokenizer=tokenizer)
 
-    result = sentiment_pipeline(user_input[:512])[0]
-    st.write(
-        f"**Predicted Sentiment:** {result['label']} (Confidence: {result['score']:.2f})")
+        sentiment_pipeline = load_model()
+        result = sentiment_pipeline(user_input[:512])[0]
+
+        st.success(f"**Predicted Sentiment:** {result['label']} (Confidence: {result['score']:.2f})")
+    else:
+        st.warning("Please enter some text before predicting.")
